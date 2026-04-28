@@ -11,7 +11,15 @@ defmodule EventStore.Streams.StreamInfo do
           status: :created | :deleted | nil
         }
 
-  defstruct [:stream_uuid, :stream_id, :created_at, :deleted_at, :status, stream_version: 0, stream_origin: 0]
+  defstruct [
+    :stream_uuid,
+    :stream_id,
+    :created_at,
+    :deleted_at,
+    :status,
+    stream_version: 0,
+    stream_origin: 0
+  ]
 
   def new(stream_uuid) do
     %StreamInfo{stream_uuid: stream_uuid}

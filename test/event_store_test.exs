@@ -199,7 +199,11 @@ defmodule EventStore.EventStoreTest do
 
     # Not testing the streaming versions again, as they end up doing the same query anyway.
 
-    test "read stream forward", %{stream_uuid: stream_uuid, old_events: old_events, new_events: new_events} do
+    test "read stream forward", %{
+      stream_uuid: stream_uuid,
+      old_events: old_events,
+      new_events: new_events
+    } do
       :ok = EventStore.append_to_stream(stream_uuid, 0, old_events)
       :ok = EventStore.append_to_stream(stream_uuid, 5, new_events, trim: true)
 
@@ -208,7 +212,11 @@ defmodule EventStore.EventStoreTest do
       assert_recorded_events(stream_uuid, 6..15, new_events, recorded_events)
     end
 
-    test "read stream backward", %{stream_uuid: stream_uuid, old_events: old_events, new_events: new_events} do
+    test "read stream backward", %{
+      stream_uuid: stream_uuid,
+      old_events: old_events,
+      new_events: new_events
+    } do
       :ok = EventStore.append_to_stream(stream_uuid, 0, old_events)
       :ok = EventStore.append_to_stream(stream_uuid, 5, new_events, trim: true)
 
@@ -216,9 +224,6 @@ defmodule EventStore.EventStoreTest do
 
       assert_recorded_events(stream_uuid, 15..6//-1, Enum.reverse(new_events), recorded_events)
     end
-
-
-
   end
 
   test "unicode character support" do
