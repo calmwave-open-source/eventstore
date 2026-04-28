@@ -188,6 +188,39 @@ defmodule EventStore.EventStoreTest do
     end
   end
 
+  describe "read events with non-zero origin" do
+    setup do
+      stream_uuid = UUID.uuid4()
+      old_events = EventFactory.create_events(5)
+      new_events = EventFactory.create_events(10)
+
+      [stream_uuid: stream_uuid, old_events: old_events, new_events: new_events]
+    end
+
+    # Not testing the streaming versions again, as they end up doing the same query anyway.
+
+    test "read stream forward", %{stream_uuid: stream_uuid, old_events: old_events, new_events: new_events} do
+      :ok = EventStore.append_to_stream(stream_uuid, 0, old_events)
+      :ok = EventStore.append_to_stream(stream_uuid, 5, new_events, trim: true)
+
+      {:ok, recorded_events} = EventStore.read_stream_forward(stream_uuid, 0)
+
+      assert_recorded_events(stream_uuid, 6..15, new_events, recorded_events)
+    end
+
+    test "read stream backward", %{stream_uuid: stream_uuid, old_events: old_events, new_events: new_events} do
+      :ok = EventStore.append_to_stream(stream_uuid, 0, old_events)
+      :ok = EventStore.append_to_stream(stream_uuid, 5, new_events, trim: true)
+
+      {:ok, recorded_events} = EventStore.read_stream_backward(stream_uuid)
+
+      assert_recorded_events(stream_uuid, 15..6//-1, Enum.reverse(new_events), recorded_events)
+    end
+
+
+
+  end
+
   test "unicode character support" do
     unicode_text = "Unicode characters are supported ✅"
     stream_uuid = UUID.uuid4()

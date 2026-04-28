@@ -294,7 +294,7 @@ defmodule EventStore do
         Supervisor.stop(supervisor, :normal, timeout)
       end
 
-      @accepted_overrides_append_to_stream [:created_at_override]
+      @accepted_overrides_append_to_stream [:created_at_override, :trim]
 
       def append_to_stream(stream_uuid, expected_version, events, opts \\ [])
 

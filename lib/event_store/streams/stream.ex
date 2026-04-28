@@ -4,40 +4,38 @@ defmodule EventStore.Streams.Stream do
   alias EventStore.{EventData, RecordedEvent, Storage, UUID}
   alias EventStore.Streams.StreamInfo
 
-  def append_to_stream(conn, stream_uuid, expected_version, events, opts)
-      when length(events) < 1000 do
-    {serializer, new_opts} = Keyword.pop(opts, :serializer)
-
-    with {:ok, stream} <- stream_info(conn, stream_uuid, expected_version, new_opts),
-         :ok <- do_append_to_storage(conn, stream, events, expected_version, serializer, new_opts) do
-      :ok
-    end
-    |> maybe_retry_once(conn, stream_uuid, expected_version, events, opts)
-  end
-
   def append_to_stream(conn, stream_uuid, expected_version, events, opts) do
     {serializer, new_opts} = Keyword.pop(opts, :serializer)
 
-    transaction(
-      conn,
-      fn transaction ->
-        with {:ok, stream} <- stream_info(transaction, stream_uuid, expected_version, new_opts),
-             :ok <-
-               do_append_to_storage(
-                 transaction,
-                 stream,
-                 events,
-                 expected_version,
-                 serializer,
-                 new_opts
-               ) do
-          :ok
-        else
-          {:error, error} -> Postgrex.rollback(transaction, error)
-        end
-      end,
-      new_opts
-    )
+    if length(events) < 1000 and not Keyword.has_key?(opts, :trim) do
+      # This will be written as a single batch, so we don't need a db call to initiate a transaction.
+      with {:ok, stream} <- stream_info(conn, stream_uuid, expected_version, new_opts),
+           :ok <-
+             do_append_to_storage(conn, stream, events, expected_version, serializer, new_opts) do
+        :ok
+      end
+    else
+      transaction(
+        conn,
+        fn transaction ->
+          with {:ok, stream} <- stream_info(transaction, stream_uuid, expected_version, new_opts),
+               :ok <-
+                 do_append_to_storage(
+                   transaction,
+                   stream,
+                   events,
+                   expected_version,
+                   serializer,
+                   new_opts
+                 ) do
+            :ok
+          else
+            {:error, error} -> Postgrex.rollback(transaction, error)
+          end
+        end,
+        new_opts
+      )
+    end
     |> maybe_retry_once(conn, stream_uuid, expected_version, events, opts)
   end
 
